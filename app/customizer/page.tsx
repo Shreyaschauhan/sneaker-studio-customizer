@@ -5,6 +5,8 @@ import { MaterialToggle } from "@/components/MaterialToggle"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useCustomizerStore } from "@/store/useCustomizerStore"
+import { SneakerPreview } from "@/components/SneakerPreview"
+
 
 
 export default function CustomizerPage() {
@@ -60,14 +62,9 @@ export default function CustomizerPage() {
 
       {/* Preview */}
       <section className="flex-1 flex items-center justify-center bg-muted">
-        <div className="text-center">
-          <p>Upper Color: {colors.upper}</p>
-          <p>Sole Color: {colors.sole}</p>
-          <p>Laces Color: {colors.laces}</p>
-          <p>Material: {material}</p>
-          <p>Text: {engravedText || "—"}</p>
-        </div>
+           <SneakerPreview />
       </section>
+
     </main>
   )
 }
