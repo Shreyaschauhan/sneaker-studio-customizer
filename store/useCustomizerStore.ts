@@ -7,11 +7,13 @@ interface CustomizerState {
   colors: Record<SneakerPart, string>
   material: "leather" | "canvas"
   engravedText: string
+  texture: "matte" | "glossy" | "canvas"
 
   setProduct: (id: string) => void
   setColor: (part: SneakerPart, color: string) => void
   setMaterial: (material: "leather" | "canvas") => void
   setEngravedText: (text: string) => void
+  setTexture: (texture: "matte" | "glossy" | "canvas") => void
   reset: () => void
 }
 
@@ -24,6 +26,7 @@ export const useCustomizerStore = create<CustomizerState>((set) => ({
   },
   material: "leather",
   engravedText: "",
+  texture: "matte",
 
   setProduct: (id) => set({ productId: id }),
 
@@ -36,6 +39,8 @@ export const useCustomizerStore = create<CustomizerState>((set) => ({
 
   setEngravedText: (text) => set({ engravedText: text }),
 
+  setTexture: (texture) => set({ texture }),
+
   reset: () =>
     set({
       productId: "air-max",
@@ -46,5 +51,6 @@ export const useCustomizerStore = create<CustomizerState>((set) => ({
       },
       material: "leather",
       engravedText: "",
+      texture: "matte",
     }),
 }))

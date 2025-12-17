@@ -24,6 +24,7 @@ export type SneakerDesign = {
   }
   material: "leather" | "canvas"
   engravedText: string
+  texture: "matte" | "glossy" | "canvas"
   createdAt: string
 }
 

@@ -1,7 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { deleteDesign, getDesigns, type SneakerDesign } from "@/lib/designStorage"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,10 +12,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { useCustomizerStore } from "@/store/useCustomizerStore"
 
 export default function GalleryPage() {
   const [designs, setDesigns] = useState<SneakerDesign[]>([])
+  const [query, setQuery] = useState("")
+  const [visibleCount, setVisibleCount] = useState(6)
+  const router = useRouter()
+  const { setProduct, setColor, setMaterial, setEngravedText, setTexture } = useCustomizerStore()
 
   useEffect(() => {
     try {
@@ -24,10 +31,40 @@ export default function GalleryPage() {
     }
   }, [])
 
+  useEffect(() => {
+    setVisibleCount(6)
+  }, [query])
+
   const handleDelete = (id: string) => {
     deleteDesign(id)
     setDesigns((prev) => prev.filter((design) => design.id !== id))
   }
+
+  const handleLoad = (design: SneakerDesign) => {
+    setProduct(design.productId)
+    setColor("upper", design.colors.upper)
+    setColor("sole", design.colors.sole)
+    setColor("laces", design.colors.laces)
+    setMaterial(design.material)
+    setEngravedText(design.engravedText)
+    setTexture(design.texture)
+    router.push("/customizer")
+  }
+
+  const filteredDesigns = useMemo(() => {
+    const term = query.trim().toLowerCase()
+    if (!term) return designs
+    return designs.filter((design) =>
+      [design.engravedText, design.material, design.colors.upper, design.colors.sole, design.colors.laces]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(term))
+    )
+  }, [designs, query])
+
+  const visibleDesigns = useMemo(
+    () => filteredDesigns.slice(0, visibleCount),
+    [filteredDesigns, visibleCount]
+  )
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-10 bg-gradient-to-b from-background via-background to-background px-4 py-12 sm:px-6 lg:px-10">
@@ -47,65 +84,87 @@ export default function GalleryPage() {
               Curated view of everything you have saved in this browser. Clean up what you don&apos;t need.
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-full border bg-card/80 px-4 py-2 text-xs text-muted-foreground shadow-sm">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.15)]" />
-            <span>Stored locally</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              placeholder="Search designs..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-56"
+            />
+            <div className="flex items-center gap-2 rounded-full border bg-card/80 px-4 py-2 text-xs text-muted-foreground shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.15)]" />
+              <span>Stored locally</span>
+            </div>
           </div>
         </div>
       </header>
 
-      {designs.length === 0 ? (
+      {filteredDesigns.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {designs.map((design) => (
-            <Card
-              key={design.id}
-              className="group relative overflow-hidden border-border/70 bg-card/80 shadow-[0_10px_35px_-25px_rgba(0,0,0,0.45)] transition-all hover:-translate-y-1 hover:border-border hover:shadow-[0_16px_45px_-25px_rgba(0,0,0,0.55)]"
-            >
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-primary/5 via-primary/0 to-transparent opacity-80" />
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-start justify-between gap-3 text-base">
-                  <div className="flex flex-col gap-1">
-                    <span className="truncate text-sm font-semibold sm:text-base">
-                      {design.engravedText || "Untitled design"}
+        <>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleDesigns.map((design) => (
+              <Card
+                key={design.id}
+                className="group relative overflow-hidden border-border/70 bg-card/80 shadow-[0_10px_35px_-25px_rgba(0,0,0,0.45)] transition-all hover:-translate-y-1 hover:border-border hover:shadow-[0_16px_45px_-25px_rgba(0,0,0,0.55)]"
+              >
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-primary/5 via-primary/0 to-transparent opacity-80" />
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-start justify-between gap-3 text-base">
+                    <div className="flex flex-col gap-1">
+                      <span className="truncate text-sm font-semibold sm:text-base">
+                        {design.engravedText || "Untitled design"}
+                      </span>
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                        <Badge>{design.material}</Badge>
+                        <span className="text-muted-foreground/60">•</span>
+                        <span>{design.productId}</span>
+                      </div>
+                    </div>
+                    <span className="text-muted-foreground text-xs font-medium">
+                      {new Date(design.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </span>
-                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-                      <Badge>{design.material}</Badge>
-                      <span className="text-muted-foreground/60">•</span>
-                      <span>{design.productId}</span>
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2 text-xs text-muted-foreground/90">
+                    Quick glance at your colorway and details below.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <ColorRow colors={design.colors} />
+                  <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+                    <div className="text-muted-foreground text-xs font-medium leading-tight">
+                      Saved locally. Load to continue editing.
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleLoad(design)}>
+                        Load
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(design.id)}
+                      >
+                        Delete
+                      </Button>
                     </div>
                   </div>
-                  <span className="text-muted-foreground text-xs font-medium">
-                    {new Date(design.createdAt).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
-                </CardTitle>
-                <CardDescription className="flex items-center gap-2 text-xs text-muted-foreground/90">
-                  Quick glance at your colorway and details below.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <ColorRow colors={design.colors} />
-                <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2">
-                  <div className="text-muted-foreground text-xs font-medium">
-                    Saved locally. No account required.
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(design.id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          {visibleCount < filteredDesigns.length && (
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={() => setVisibleCount((c) => c + 6)}>
+                Load more
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
